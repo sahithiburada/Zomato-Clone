@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { FaSearch } from 'react-icons/fa';
 
 const RestaurantListPage = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -7,168 +9,195 @@ const RestaurantListPage = () => {
   const [country, setCountry] = useState('');
   const [averageSpend, setAverageSpend] = useState('');
   const [cuisine, setCuisine] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
 
-  // Fetch all restaurants
+  // Fetch all restaurants initially
   const fetchRestaurants = async () => {
-    const response = await fetch('http://127.0.0.1:5000/restaurants');
-    const data = await response.json();
-    setRestaurants(data);
+    try {
+      const response = await fetch('http://127.0.0.1:5000/restaurants');
+      const data = await response.json();
+      if (Array.isArray(data)) setRestaurants(data);
+    } catch (error) {
+      console.error("Error fetching restaurants:", error);
+    }
   };
 
   useEffect(() => {
     fetchRestaurants();
   }, []);
 
+  // Handle search based on filters
   const handleSearch = async () => {
-    const params = new URLSearchParams();
+    try {
+      const params = new URLSearchParams();
+      if (country) params.append('country', country);
+      if (averageSpend) params.append('average_spend', averageSpend);
+      if (cuisine) params.append('cuisine', cuisine);
+      if (searchQuery) params.append('search_query', searchQuery);
+      if (latitude) params.append('latitude', latitude);
+      if (longitude) params.append('longitude', longitude);
 
-    // Add filters to the request
-    if (country) params.append('country', country);
-    if (averageSpend) params.append('average_spend', averageSpend);
-    if (cuisine) params.append('cuisine', cuisine);
-    if (searchQuery) params.append('search_query', searchQuery);
+      console.log("API Request:", `http://127.0.0.1:5000/search-restaurants?${params.toString()}`);
 
-    // Send request to Flask backend
-    const response = await fetch(`http://127.0.0.1:5000/search-restaurants?${params.toString()}`);
-    const data = await response.json();
-    setRestaurants(data);
+      const response = await fetch(`http://127.0.0.1:5000/search-restaurants?${params.toString()}`);
+      const data = await response.json();
+
+      if (Array.isArray(data)) setRestaurants(data);
+    } catch (error) {
+      console.error("Error searching restaurants:", error);
+    }
   };
 
   return (
     <Container>
-      <Header>Restaurant List</Header>
+      <TopBar>
+        <Logo src="/zomologo.png" alt="Logo" />
+        <SearchBar>
+          <SearchInput type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search restaurants..." />
+          <SearchIcon onClick={handleSearch} />
+        </SearchBar>
+      </TopBar>
 
-      {/* Search Bar */}
-      <SearchContainer>
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by name or description"
-        />
-        <Button onClick={handleSearch}>Search</Button>
-      </SearchContainer>
-
-      {/* Filters */}
       <FiltersContainer>
-        <Input
-          type="text"
-          value={country}
-          onChange={(e) => setCountry(e.target.value)}
-          placeholder="Filter by Country"
-        />
-        <Input
-          type="text"
-          value={averageSpend}
-          onChange={(e) => setAverageSpend(e.target.value)}
-          placeholder="Average Spend for Two"
-        />
-        <Input
-          type="text"
-          value={cuisine}
-          onChange={(e) => setCuisine(e.target.value)}
-          placeholder="Filter by Cuisine"
-        />
-        <Button onClick={handleSearch}>Apply Filters</Button>
+        <FilterInput type="text" value={averageSpend} onChange={(e) => setAverageSpend(e.target.value)} placeholder="Average Spend for Two" />
+        <FilterInput type="text" value={cuisine} onChange={(e) => setCuisine(e.target.value)} placeholder="Filter by Cuisine" />
+        <FilterInput type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Enter Latitude" />
+        <FilterInput type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Enter Longitude" />
+        <FilterButton onClick={handleSearch}>Search</FilterButton>
       </FiltersContainer>
 
-      {/* Restaurant Cards */}
-      <RestaurantCards>
-        {restaurants.length === 0 && <p>No results found.</p>}
+      <RestaurantGrid>
+        {restaurants.length === 0 && <NoResults>No results found.</NoResults>}
         {restaurants.map((restaurant) => (
           <Card key={restaurant.restaurant_id}>
             <h3>{restaurant.name}</h3>
             <p>{restaurant.cuisines} | ${restaurant.average_cost} for two</p>
-            <a href={`/restaurant/${restaurant.restaurant_id}`} className="link">
-              View Details
-            </a>
+            <StyledTextLink to={`/restaurant/${restaurant.restaurant_id}`}>View Details</StyledTextLink>
           </Card>
         ))}
-      </RestaurantCards>
+      </RestaurantGrid>
     </Container>
   );
 };
 
-// Styled components for CSS-in-JS
+// Styled Components
 const Container = styled.div`
+  background-color: #FFFAF0;
   padding: 20px;
   max-width: 1200px;
   margin: auto;
 `;
 
-const Header = styled.h2`
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 20px;
+const TopBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color:rgb(253, 243, 201);
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
 `;
 
-const SearchContainer = styled.div`
+const Logo = styled.img`
+  height: 90px;
+  width: auto;
+`;
+
+const SearchBar = styled.div`
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
+  align-items: center;
+  border: 2px solid #F85E00;
+  border-radius: 25px;
+  padding: 6px 12px;
+  width: 320px;
+  background-color: white;
+`;
+
+const SearchInput = styled.input`
+  border: none;
+  outline: none;
+  flex: 1;
+  padding: 8px;
+  font-size: 15px;
+`;
+
+const SearchIcon = styled(FaSearch)`
+  color: #F85E00;
+  cursor: pointer;
+  font-size: 18px;
 `;
 
 const FiltersContainer = styled.div`
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
+  gap: 15px;
+  margin-top: 20px;
 `;
 
-const Input = styled.input`
+const FilterInput = styled.input`
   padding: 10px;
-  margin: 10px;
-  width: 200px;
+  width: 220px;
   border-radius: 5px;
   border: 1px solid #ccc;
 `;
 
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #1e90ff;
+const FilterButton = styled.button`
+  padding: 10px 15px;
+  background-color: #F85E00;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-
-  &:hover {
-    background-color: #187bcd;
-  }
 `;
 
-const RestaurantCards = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
+const RestaurantGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
 `;
 
 const Card = styled.div`
-  background-color: #fff;
-  padding: 20px;
-  margin: 10px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 200px;
+  background-color: #FFF7D7;
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+  }
 
   h3 {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     color: #2c3e50;
   }
 
   p {
     color: #7f8c8d;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
+`;
 
-  .link {
-    color: #1e90ff;
-    text-decoration: none;
-    font-weight: bold;
-  }
+const StyledTextLink = styled(Link)`
+  font-size: 1rem;
+  color: #F85E00;
+  text-decoration: none;
+  font-weight: bold;
 
-  .link:hover {
+  &:hover {
     text-decoration: underline;
   }
+`;
+
+const NoResults = styled.p`
+  text-align: center;
+  font-size: 1.5rem;
+  color: #F85E00;
 `;
 
 export default RestaurantListPage;
